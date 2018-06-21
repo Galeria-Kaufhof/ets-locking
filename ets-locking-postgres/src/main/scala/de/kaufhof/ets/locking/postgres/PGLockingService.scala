@@ -2,12 +2,13 @@ package de.kaufhof.ets.locking.postgres
 
 import java.sql.SQLException
 import java.time.Clock
+import java.util.concurrent.Executors
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
 import scala.concurrent.stm._
 import scala.util.{Failure, Success}
-import akka.actor.{ActorSystem, Cancellable}
+import akka.actor.{Cancellable, Scheduler}
 import cats.effect.IO
 import doobie._
 import doobie.implicits._
@@ -21,17 +22,25 @@ sealed trait ConnectionProvider
 case class Datasource[A <: javax.sql.DataSource](datasource: A) extends ConnectionProvider
 case class DriverManager(driver: String, url: String, user: String, password: String) extends ConnectionProvider
 
-class PGLockingService(tableName: String, connectionProvider: ConnectionProvider, blockingEC: ExecutionContext)
-                      (implicit as: ActorSystem, clock: Clock) extends LockingService {
-
-  import as.dispatcher
+/**
+  * Implementation for locking service using postgres
+  * @param connectionProvider provies a connection for db access
+  * @param tableName plain sql for table name (ATTENTION: vurnable to sql injections)!
+  * @param blockingEC execution context for I/O via jdbc
+  * @param ec default execution context
+  * @param clock should be system time, used to calculate lock TTL
+  */
+class PGLockingService(connectionProvider: ConnectionProvider,
+                       tableName: String = "ets-locking",
+                       blockingEC: ExecutionContext = PGLockingService.defaultExecutionContext)
+                      (implicit ec: ExecutionContext, scheduler: Scheduler, clock: Clock) extends LockingService {
 
   private val transactor: Transactor[IO] = connectionProvider match {
     case Datasource(d) => Transactor.fromDataSource.apply.apply(d)
     case DriverManager(driver, url, user, pw) => Transactor.fromDriverManager(driver, url, user, pw)
   }
 
-  private val lockingRepo = new PGLockingRepository(tableName)
+  protected val lockingRepo = new PGLockingRepository(tableName)
 
   implicit class CioOps[T](cio: ConnectionIO[T]) {
     def execFuture: Future[T] = Future(cio.transact(transactor).unsafeRunSync())(blockingEC)
@@ -48,7 +57,7 @@ class PGLockingService(tableName: String, connectionProvider: ConnectionProvider
   protected val locks = Ref(Set.empty[LockId])
   protected val locksWithPendingValidation = Ref(Set.empty[LockId])
 
-  protected val refreshLockScheduled: Cancellable = as.scheduler.schedule(lockRefreshInterval, lockRefreshInterval)(refreshLocks())
+  protected val refreshLockScheduled: Cancellable = scheduler.schedule(lockRefreshInterval, lockRefreshInterval)(refreshLocks())
 
   private def refreshLocks() : Unit = {
     //randomize to prevent multiple instances always try to refresh at the same time
@@ -56,7 +65,7 @@ class PGLockingService(tableName: String, connectionProvider: ConnectionProvider
     val locksToRefresh = locks.single()
 
     //TODO use randomize-scheduler from TriggeringService
-    as.scheduler.scheduleOnce(delay){
+    scheduler.scheduleOnce(delay){
       val validUntil = clock.instant().plusMillis(lockValidDuration.toMillis)
 
       lockingRepo
@@ -78,6 +87,9 @@ class PGLockingService(tableName: String, connectionProvider: ConnectionProvider
 
     ()
   }
+
+  def createTableIfNotExists: Future[Unit] =
+    lockingRepo.createTableIfNotExists.execFuture
 
   def withLock[T](lockId: LockId)(f: => Future[T]): Future[LockedExecution[T]] = {
 
@@ -166,9 +178,9 @@ class PGLockingService(tableName: String, connectionProvider: ConnectionProvider
       }
     }
 
-  def shutdown(): Unit = {
-    refreshLockScheduled.cancel()
-    ()
-  }
+}
 
+object PGLockingService {
+  def defaultExecutionContext: ExecutionContextExecutorService =
+    ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(8))
 }
