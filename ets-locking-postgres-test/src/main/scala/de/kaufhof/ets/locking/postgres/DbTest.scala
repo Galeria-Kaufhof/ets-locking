@@ -8,7 +8,7 @@ import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 trait DbTest extends WordSpecLike with BeforeAndAfterAll {
 
   private val driver = "org.postgresql.Driver"
-  private val url = "jdbc:postgresql://127.0.0.1:5432/postgres?currentSchema=test"
+  private val url = "jdbc:postgresql://127.0.0.1:6432/postgres?currentSchema=test"
   private val user = "postgres"
   private val pass = "pass"
 
