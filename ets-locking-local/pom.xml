@@ -12,7 +12,7 @@
 
     <!-- must not be the same as the parent because the parent is NOT the same project! -->
     <version>0.1-SNAPSHOT</version>
-    <artifactId>ets-locking-postgres</artifactId>
+    <artifactId>ets-locking-local</artifactId>
 
     <!-- For galeria kaufhof internal purposes only, this profile will be removed in future!
     This will not work for releases! The idea is to call mvn -P scala-2.11 package and copy the pure target/<lib>.jar
@@ -87,10 +87,6 @@
             <version>${ets.scala.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_${ets.scala.compat.version}</artifactId>
-        </dependency>
-        <dependency>
             <groupId>de.kaufhof.ets</groupId>
             <artifactId>ets-locking-core</artifactId>
             <version>0.1-SNAPSHOT</version>
@@ -99,16 +95,6 @@
             <groupId>org.scala-stm</groupId>
             <artifactId>scala-stm_${ets.scala.compat.version}</artifactId>
             <version>0.8</version>
-        </dependency>
-        <dependency>
-            <groupId>org.tpolecat</groupId>
-            <artifactId>doobie-core_${ets.scala.compat.version}</artifactId>
-            <version>0.5.3</version>
-        </dependency>
-        <dependency>
-            <groupId>org.tpolecat</groupId>
-            <artifactId>doobie-postgres_${ets.scala.compat.version}</artifactId>
-            <version>0.5.3</version>
         </dependency>
 
     </dependencies>

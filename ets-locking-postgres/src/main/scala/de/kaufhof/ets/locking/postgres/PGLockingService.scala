@@ -42,7 +42,7 @@ class PGLockingService(connectionProvider: ConnectionProvider,
 
   protected val lockingRepo = new PGLockingRepository(tableName)
 
-  implicit class CioOps[T](cio: ConnectionIO[T]) {
+  protected implicit class CioOps[T](cio: ConnectionIO[T]) {
     def execFuture: Future[T] = Future(cio.transact(transactor).unsafeRunSync())(blockingEC)
   }
 

@@ -17,6 +17,7 @@
 
     <modules>
         <module>ets-locking-core</module>
+        <module>ets-locking-local</module>
         <module>ets-locking-postgres</module>
         <module>ets-locking-postgres-test</module>
     </modules>
