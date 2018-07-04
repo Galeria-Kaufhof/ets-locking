@@ -11,7 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!-- must not be the same as the parent because the parent is NOT the same project! -->
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
     <artifactId>ets-locking-local</artifactId>
     <description>ETS Locking library ets-locking-local implementation</description>
 
@@ -90,7 +90,7 @@
         <dependency>
             <groupId>de.kaufhof.ets</groupId>
             <artifactId>ets-locking-core</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.scala-stm</groupId>
