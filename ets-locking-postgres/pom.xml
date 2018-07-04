@@ -11,8 +11,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!-- must not be the same as the parent because the parent is NOT the same project! -->
-    <version>0.1-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <artifactId>ets-locking-postgres</artifactId>
+    <description>ETS Locking library ets-locking-postgres implementation</description>
 
     <!-- For galeria kaufhof internal purposes only, this profile will be removed in future!
     This will not work for releases! The idea is to call mvn -P scala-2.11 package and copy the pure target/<lib>.jar
@@ -93,7 +94,7 @@
         <dependency>
             <groupId>de.kaufhof.ets</groupId>
             <artifactId>ets-locking-core</artifactId>
-            <version>0.1-SNAPSHOT</version>
+            <version>0.1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.scala-stm</groupId>

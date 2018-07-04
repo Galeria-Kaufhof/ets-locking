@@ -11,9 +11,34 @@
         <relativePath />
     </parent>
 
+    <description>ETS Locking aggregator POM</description>
+
     <artifactId>ets-locking-aggregator</artifactId>
     <packaging>pom</packaging>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>galeria-kaufhof</id>
+            <name>Galeria Kaufhof</name>
+            <url>https://github.com/Galeria-Kaufhof</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/Galeria-Kaufhof/ets-locking</url>
+        <connection>scm:git:git@github.com:Galeria-Kaufhof/ets-locking.git</connection>
+        <developerConnection>scm:git:git@github.com:Galeria-Kaufhof/ets-locking.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
 
     <modules>
         <module>ets-locking-core</module>
