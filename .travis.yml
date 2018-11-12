@@ -1,18 +1,20 @@
+language: bash
+
 sudo: required
 
 services:
   - docker
 
-language: scala
-
-jdk:
-  - oraclejdk8
-  - openjdk8
-
 before_install:
   - docker-compose --version
   - docker-compose -f .travis/docker-compose.yml up -d
   - docker ps
+
+script:
+  - docker run --net=host --rm -v $(pwd):/root/sources -w /root/sources maven:3.5.4 mvn clean install
+
+after_failure:
+  - find target -name "*.log" -exec echo {} \; -exec cat {} \;
 
 branches:
   only:
