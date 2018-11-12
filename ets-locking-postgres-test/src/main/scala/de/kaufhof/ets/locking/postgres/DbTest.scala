@@ -1,6 +1,6 @@
 package de.kaufhof.ets.locking.postgres
 
-import cats.effect.IO
+import cats.effect.{ContextShift, IO}
 import doobie.{ConnectionIO, Fragment, Transactor}
 import doobie.implicits._
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
@@ -11,6 +11,8 @@ trait DbTest extends WordSpecLike with BeforeAndAfterAll {
   private val url = "jdbc:postgresql://127.0.0.1:6432/postgres?currentSchema=test"
   private val user = "postgres"
   private val pass = "pass"
+
+  implicit val contextShiftIO: ContextShift[IO] = IO.contextShift(scala.concurrent.ExecutionContext.global)
 
   val transactor: Transactor[IO] = Transactor.fromDriverManager[IO](driver, url, user, pass)
   val connectionProvider = DriverManager(driver, url, user, pass)

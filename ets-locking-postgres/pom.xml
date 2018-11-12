@@ -104,12 +104,12 @@
         <dependency>
             <groupId>org.tpolecat</groupId>
             <artifactId>doobie-core_${ets.scala.compat.version}</artifactId>
-            <version>0.5.3</version>
+            <version>0.6.0</version>
         </dependency>
         <dependency>
             <groupId>org.tpolecat</groupId>
             <artifactId>doobie-postgres_${ets.scala.compat.version}</artifactId>
-            <version>0.5.3</version>
+            <version>0.6.0</version>
         </dependency>
 
     </dependencies>

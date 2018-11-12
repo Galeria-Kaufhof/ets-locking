@@ -4,19 +4,18 @@ import java.sql.SQLException
 import java.time.Clock
 import java.util.concurrent.Executors
 
-import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
-import scala.concurrent.stm._
-import scala.util.{Failure, Success}
 import akka.actor.{Cancellable, Scheduler}
-import cats.effect.IO
+import cats.effect.{ContextShift, IO}
+import de.kaufhof.ets.locking.core._
 import doobie._
 import doobie.implicits._
-import de.kaufhof.ets.locking.core._
-import cats.implicits._
 import doobie.postgres.sqlstate
 
+import scala.concurrent.duration._
+import scala.concurrent.stm._
+import scala.concurrent.{ExecutionContext, Future}
 import scala.math.Ordering.Implicits._
+import scala.util.{Failure, Success}
 
 sealed trait ConnectionProvider
 case class Datasource[A <: javax.sql.DataSource](datasource: A) extends ConnectionProvider
@@ -32,11 +31,15 @@ case class DriverManager(driver: String, url: String, user: String, password: St
   */
 class PGLockingService(connectionProvider: ConnectionProvider,
                        tableName: String = "ets-locking",
-                       blockingEC: ExecutionContext = PGLockingService.defaultExecutionContext)
+                       blockingEC: ExecutionContext = PGLockingService.defaultBlockingEC,
+                       connectionEC: ExecutionContext = PGLockingService.defaultConnectionEC(4))
                       (implicit ec: ExecutionContext, scheduler: Scheduler, clock: Clock) extends LockingService {
 
+  implicit val contextShiftIO: ContextShift[IO] = IO.contextShift(ec)
+
   private val transactor: Transactor[IO] = connectionProvider match {
-    case Datasource(d) => Transactor.fromDataSource.apply.apply(d)
+    case Datasource(d) =>
+      Transactor.fromDataSource[IO](d, connectionEC, blockingEC)
     case DriverManager(driver, url, user, pw) => Transactor.fromDriverManager(driver, url, user, pw)
   }
 
@@ -181,6 +184,8 @@ class PGLockingService(connectionProvider: ConnectionProvider,
 }
 
 object PGLockingService {
-  def defaultExecutionContext: ExecutionContextExecutorService =
-    ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(8))
+  def defaultBlockingEC: ExecutionContext =
+    ExecutionContext.fromExecutorService(Executors.newCachedThreadPool)
+  def defaultConnectionEC(size: Int): ExecutionContext = 
+    ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(size))
 }
