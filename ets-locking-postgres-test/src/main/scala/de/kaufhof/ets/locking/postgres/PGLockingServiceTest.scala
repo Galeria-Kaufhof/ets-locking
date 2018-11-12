@@ -3,18 +3,17 @@ package de.kaufhof.ets.locking.postgres
 import java.time.{Clock, Instant, ZoneId}
 
 import akka.actor.{ActorSystem, Scheduler}
+import cats.implicits._
 import de.kaufhof.ets.locking.core.{Executed, LockId, Locked}
+import org.scalatest.concurrent.Eventually
 import org.scalatest.{Matchers, WordSpec}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.stm.{Ref, atomic}
-import scala.concurrent.{Await, Future}
-import scala.util.Try
-import org.scalatest.concurrent.Eventually
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.reflectiveCalls
-import scala.concurrent.ExecutionContext.Implicits.global
-import doobie.implicits._
-import cats.implicits._
+import scala.util.Try
 
 class PGLockingServiceTest extends WordSpec with Matchers with Eventually with DbTest {
   implicit val as = ActorSystem("PGLockingServiceTest")
@@ -31,9 +30,9 @@ class PGLockingServiceTest extends WordSpec with Matchers with Eventually with D
     implicit val mutableClock = new MutableClock
     mutableClock.setTime(testtime)
 
-    val testee = new PGLockingServiceWithInsights(connectionProvider)
-    lazy val secondTesteeInstance = new PGLockingServiceWithInsights(connectionProvider)
-    lazy val fastRefreshingTestee = new PGLockingServiceWithInsights(connectionProvider, fastLockRefreshInterval, 0.seconds)
+    val testee = new PGLockingServiceWithInsights(connectionProvider, connectionEC = scala.concurrent.ExecutionContext.global)
+    lazy val secondTesteeInstance = new PGLockingServiceWithInsights(connectionProvider, connectionEC = scala.concurrent.ExecutionContext.global)
+    lazy val fastRefreshingTestee = new PGLockingServiceWithInsights(connectionProvider, fastLockRefreshInterval, 0.seconds, connectionEC = scala.concurrent.ExecutionContext.global)
     val lockingRepo = new PGLockingRepository(DbTest.tblName)
 
     def shutdown() = {
@@ -187,9 +186,12 @@ class PGLockingRepositoryWithInsights(tableName: String)(implicit clock: Clock) 
 
 class PGLockingServiceWithInsights(connectionProvider: ConnectionProvider,
                                    override protected val lockRefreshInterval: FiniteDuration = 15.seconds,
-                                   override protected val randomizeRefreshMax: FiniteDuration = 5.seconds)
+                                   override protected val randomizeRefreshMax: FiniteDuration = 5.seconds,
+                                   blockingEC: ExecutionContext = PGLockingService.defaultBlockingEC,
+                                   connectionEC: ExecutionContext = PGLockingService.defaultConnectionEC(4)
+                                  )
                                   (implicit scheduler: Scheduler, clock: Clock)
-  extends PGLockingService(connectionProvider, DbTest.tblName) {
+  extends PGLockingService(connectionProvider, DbTest.tblName, blockingEC, connectionEC) {
 
   lazy val lockingRepoWithInsights = new PGLockingRepositoryWithInsights(DbTest.tblName)
 
@@ -198,11 +200,11 @@ class PGLockingServiceWithInsights(connectionProvider: ConnectionProvider,
   def getLocks = locks.single()
 
   def shutdown(): Unit = {
+    import doobie.implicits._
     refreshLockScheduled.cancel()
-     Await.result(locks.single().map(lockingRepo.releaseLock(_, instanceId)).toList.sequence.execFuture, 10.seconds)
+     Await.result(locks.single().toList.traverse(lockingRepo.releaseLock(_, instanceId)).execFuture, 10.seconds)
     ()
   }
-
 }
 
 class MutableClock extends Clock {
